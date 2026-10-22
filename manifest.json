@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Nova Tab – Student Dashboard & Search",
+  "version": "2.0.0",
+  "description": "A beautiful new tab for students: multi-engine & AI search, Bangladesh time, Pomodoro, assignments, exams, class routine, CGPA, prayer times, weather, focus mode and more.",
+  "permissions": ["storage", "alarms", "notifications"],
+  "optional_permissions": ["tabs", "declarativeNetRequest"],
+  "optional_host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "web_accessible_resources": [
+    { "resources": ["blocked.html", "blocked.css", "blocked.js"], "matches": ["<all_urls>"] }
+  ],
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
