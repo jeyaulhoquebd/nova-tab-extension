@@ -1,6 +1,5 @@
 (() => {
   'use strict';
-  const TZ = 'Asia/Dhaka';
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const hasChrome = typeof chrome !== 'undefined' && !!(chrome.storage && chrome.storage.local);
@@ -39,7 +38,7 @@
   const DEFAULTS = {
     hour12: true, showSeconds: true, name: '', mode: 'dark', wallpaper: 'none',
     dailyGoal: 120, focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4,
-    blockDuringPomodoro: false, city: 'Dhaka',
+    blockDuringPomodoro: false, city: '', timezone: 'auto', suggest: true, recent: true,
     blockList: ['facebook.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'reddit.com', 'netflix.com']
   };
   const state = { settings: { ...DEFAULTS } };
@@ -54,6 +53,7 @@
   async function boot() {
     const r = await load(['settings']);
     state.settings = { ...DEFAULTS, ...(r.settings || {}) };
+    applyTimezone();
     ['formDialog', 'bigDialog'].forEach(id => {
       const d = $(id);
       d.addEventListener('click', ev => { if (ev.target === d) d.close(); });
@@ -91,15 +91,52 @@
     } catch (e) { return null; }
   }
 
-  /* ---------- dates & time (Bangladesh) ---------- */
-  const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
-  const partsFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  const todayStr = (d = new Date()) => ymdFmt.format(d);
-  function nowDhaka() {
-    const p = {};
-    partsFmt.formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
-    return { day: DAYS.indexOf(p.weekday), minutes: (parseInt(p.hour, 10) % 24) * 60 + parseInt(p.minute, 10) };
+  /* ---------- time zone (auto-detected from the device, or chosen manually) ---------- */
+  const deviceTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } };
+  const validTz = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
+  let TZ = deviceTz();
+  function applyTimezone() {
+    const s = state.settings.timezone;
+    TZ = s && s !== 'auto' && validTz(s) ? s : deviceTz();
   }
+  const FALLBACK_ZONES = ['Asia/Dhaka', 'Asia/Kolkata', 'Asia/Karachi', 'Asia/Dubai', 'Asia/Riyadh', 'Asia/Singapore', 'Asia/Tokyo', 'Europe/London', 'Europe/Paris', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney', 'UTC'];
+  const allZones = () => { try { if (Intl.supportedValuesOf) return Intl.supportedValuesOf('timeZone'); } catch (e) { /* old browser */ } return FALLBACK_ZONES; };
+
+  const fmtCache = {}, offCache = {};
+  function nowIn(tz = TZ, d = new Date()) {
+    let f = fmtCache[tz];
+    if (!f) f = fmtCache[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const p = {};
+    f.formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    return { day: DAYS.indexOf(p.weekday), minutes: (parseInt(p.hour, 10) % 24) * 60 + parseInt(p.minute, 10), ymd: `${p.year}-${p.month}-${p.day}` };
+  }
+  const nowTz = () => nowIn(TZ);
+  const todayStr = (d = new Date()) => nowIn(TZ, d).ymd;
+
+  function tzOffsetMs(ts, tz = TZ) {
+    let f = offCache[tz];
+    if (!f) f = offCache[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const p = {};
+    f.formatToParts(new Date(ts)).forEach(x => { p[x.type] = x.value; });
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Math.floor(ts / 1000) * 1000;
+  }
+  // wall-clock time in a time zone -> real timestamp
+  function zonedToMs(ymd, hm, tz = TZ) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const [h, mi] = (hm || '00:00').split(':').map(Number);
+    const guess = Date.UTC(y, m - 1, d, h || 0, mi || 0);
+    let t = guess - tzOffsetMs(guess, tz);
+    t = guess - tzOffsetMs(t, tz);
+    return t;
+  }
+  const ALIASES = { Calcutta: 'Kolkata', Saigon: 'Ho Chi Minh City', Katmandu: 'Kathmandu', Rangoon: 'Yangon' };
+  const cityName = tz => { if (tz === 'UTC') return 'UTC'; const c = tz.split('/').pop().replace(/_/g, ' '); return ALIASES[c] || c; };
+  function tzInfo(tz = TZ) {
+    const now = new Date();
+    const get = style => { try { const x = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: style }).formatToParts(now).find(p => p.type === 'timeZoneName'); return x ? x.value : ''; } catch (e) { return ''; } };
+    return { region: cityName(tz), long: get('long'), offset: get('shortOffset') };
+  }
+
   const toMin = s => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null; };
   function fmtMin(mins, hour12 = state.settings.hour12) {
     mins = ((mins % 1440) + 1440) % 1440;
@@ -128,7 +165,9 @@
 
   function card(title, { icon = '', actions = [], cls = '' } = {}) {
     const body = el('div', { class: 'card-body' });
-    const head = el('div', { class: 'card-head' }, el('h3', { text: (icon ? icon + ' ' : '') + title }), el('div', { class: 'card-actions' }, actions));
+    const head = el('div', { class: 'card-head' },
+      el('div', { class: 'card-title' }, icon ? el('span', { class: 'card-icon', text: icon }) : null, el('h3', { text: title })),
+      el('div', { class: 'card-actions' }, actions));
     const root = el('article', { class: 'card ' + cls }, head, body);
     $('dashboard').appendChild(root);
     return { root, head, body };
@@ -193,9 +232,9 @@
   }
 
   window.NT = {
-    TZ, DAYS, DAY_NAMES, $, el, store, load, save, loadSync: k => store.get('sync', k), saveSync: o => store.set('sync', o),
+    tz: () => TZ, deviceTz, validTz, applyTimezone, cityName, allZones, nowIn, tzOffsetMs, zonedToMs, tzInfo, DAYS, DAY_NAMES, $, el, store, load, save, loadSync: k => store.get('sync', k), saveSync: o => store.set('sync', o),
     state, saveSettings, on, emit, register, boot, favicon, hostOf, uid, normalizeUrl,
-    todayStr, nowDhaka, toMin, fmtMin, addDays, daysUntil, prettyDate, fmtCountdown,
+    todayStr, nowTz, toMin, fmtMin, addDays, daysUntil, prettyDate, fmtCountdown,
     toast, card, formDialog, bigDialog
   };
 })();

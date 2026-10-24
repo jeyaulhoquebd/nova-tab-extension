@@ -2,8 +2,9 @@
   'use strict';
   const { el, state } = NT;
   const PRAYERS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-  const WMO = { 0: ['Clear sky', '☀️'], 1: ['Mostly clear', '🌤️'], 2: ['Partly cloudy', '⛅'], 3: ['Overcast', '☁️'], 45: ['Fog', '🌫️'], 48: ['Fog', '🌫️'], 51: ['Light drizzle', '🌦️'], 53: ['Drizzle', '🌦️'], 55: ['Heavy drizzle', '🌧️'], 61: ['Light rain', '🌦️'], 63: ['Rain', '🌧️'], 65: ['Heavy rain', '🌧️'], 80: ['Rain showers', '🌦️'], 81: ['Rain showers', '🌧️'], 82: ['Violent showers', '⛈️'], 95: ['Thunderstorm', '⛈️'], 96: ['Thunderstorm', '⛈️'], 99: ['Thunderstorm', '⛈️'] };
-  let wBody, pBody, pTitle, nextEl, loc = null, prayer = null, prayerDay = '', loading = false, usedCity = null, usedHour12 = null;
+  const HANAFI_ZONES = ['Asia/Dhaka', 'Asia/Karachi', 'Asia/Kolkata', 'Asia/Kathmandu', 'Asia/Colombo'];
+  const WMO = { 0: ['Clear sky', '☀️'], 1: ['Mostly clear', '🌤️'], 2: ['Partly cloudy', '⛅'], 3: ['Overcast', '☁️'], 45: ['Fog', '🌫️'], 48: ['Fog', '🌫️'], 51: ['Light drizzle', '🌦️'], 53: ['Drizzle', '🌦️'], 55: ['Heavy drizzle', '🌧️'], 56: ['Freezing drizzle', '🌧️'], 57: ['Freezing drizzle', '🌧️'], 61: ['Light rain', '🌦️'], 63: ['Rain', '🌧️'], 65: ['Heavy rain', '🌧️'], 66: ['Freezing rain', '🌧️'], 67: ['Freezing rain', '🌧️'], 71: ['Light snow', '🌨️'], 73: ['Snow', '❄️'], 75: ['Heavy snow', '❄️'], 77: ['Snow grains', '❄️'], 80: ['Rain showers', '🌦️'], 81: ['Rain showers', '🌧️'], 82: ['Violent showers', '⛈️'], 85: ['Snow showers', '🌨️'], 86: ['Snow showers', '🌨️'], 95: ['Thunderstorm', '⛈️'], 96: ['Thunderstorm', '⛈️'], 99: ['Thunderstorm', '⛈️'] };
+  let wBody, pBody, pTitle, nextEl, loc = null, prayer = null, prayerDay = '', loading = false, usedKey = null, usedHour12 = null;
 
   async function fetchJson(url, ms = 9000) {
     const ctl = new AbortController();
@@ -15,18 +16,27 @@
     } finally { clearTimeout(t); }
   }
 
+  const autoCity = tz => NT.cityName(tz);
+  const locKey = () => NT.tz() + '|' + (state.settings.city || '').trim();
+
+  // City comes from Settings, or is guessed from the time zone (e.g. Asia/Dhaka -> Dhaka).
   async function getLoc() {
-    const city = (state.settings.city || 'Dhaka').trim() || 'Dhaka';
+    const tz = NT.tz();
+    const city = (state.settings.city || '').trim() || autoCity(tz);
     const saved = (await NT.load(['loc'])).loc;
-    if (saved && saved.query === city) return saved;
-    let out = { query: city, name: 'Dhaka', lat: 23.8103, lon: 90.4125 };
-    if (city.toLowerCase() !== 'dhaka') {
+    if (saved && saved.query === city && saved.deviceTz === tz) return saved;
+    let out = null;
+    if (city.toLowerCase() === 'dhaka' && tz === 'Asia/Dhaka') out = { name: 'Dhaka', lat: 23.8103, lon: 90.4125, tz: 'Asia/Dhaka', country: 'Bangladesh' };
+    else {
       try {
-        const g = await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&countryCode=BD&language=en&format=json`);
-        if (g.results && g.results[0]) out = { query: city, name: g.results[0].name, lat: g.results[0].latitude, lon: g.results[0].longitude };
-        else NT.toast(`Couldn't find "${city}" in Bangladesh — showing Dhaka.`);
-      } catch (e) { NT.toast('Could not look up the city (offline?) — showing Dhaka.'); }
+        const g = await fetchJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=10&language=en&format=json`);
+        const list = g.results || [];
+        const best = list.find(r => r.timezone === tz) || list[0];
+        if (best) out = { name: best.name, lat: best.latitude, lon: best.longitude, tz: best.timezone || tz, country: best.country || '' };
+      } catch (e) { /* offline */ }
     }
+    if (!out) return saved || null;
+    out = { ...out, query: city, deviceTz: tz };
     NT.save({ loc: out });
     return out;
   }
@@ -40,7 +50,8 @@
     wBody.textContent = '';
     wBody.append(
       el('div', { class: 'weather-main' }, el('div', { class: 'weather-icon', text: icon }),
-        el('div', {}, el('div', { class: 'weather-temp', text: `${Math.round(c.temperature_2m)}°C` }), el('div', { class: 'weather-desc', text: `${desc} · ${l.name}` }))),
+        el('div', {}, el('div', { class: 'weather-temp', text: `${Math.round(c.temperature_2m)}°C` }),
+          el('div', { class: 'weather-desc', text: `${desc} · ${l.name}${l.country ? ', ' + l.country : ''}` }))),
       el('div', { class: 'weather-meta' },
         el('div', {}, 'Feels like', el('b', { text: `${Math.round(c.apparent_temperature)}°C` })),
         el('div', {}, 'Today', el('b', { text: `${lo}° / ${hi}°` })),
@@ -53,7 +64,7 @@
     const cached = (await NT.load(['weatherCache'])).weatherCache;
     if (cached && cached.key === key && Date.now() - cached.t < 30 * 60000) { renderWeather(cached.data, l, false); return; }
     try {
-      const d = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${l.lat}&longitude=${l.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FDhaka&forecast_days=1`);
+      const d = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${l.lat}&longitude=${l.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`);
       NT.save({ weatherCache: { key, t: Date.now(), data: d } });
       renderWeather(d, l, false);
     } catch (e) {
@@ -64,16 +75,18 @@
 
   /* ---------- prayer times ---------- */
   const toMinutes = s => { const m = /(\d{1,2}):(\d{2})/.exec(s || ''); return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null; };
+  const isHanafi = l => HANAFI_ZONES.includes(l.tz);
 
   async function loadPrayer(l) {
-    const today = NT.todayStr();
+    const today = NT.nowIn(l.tz).ymd;
     const key = `${today}|${l.lat.toFixed(2)},${l.lon.toFixed(2)}`;
     const cached = (await NT.load(['prayerCache'])).prayerCache;
     let timings = cached && cached.key === key ? cached.timings : null;
     if (!timings) {
       try {
         const [y, m, d] = today.split('-');
-        const res = await fetchJson(`https://api.aladhan.com/v1/timings/${d}-${m}-${y}?latitude=${l.lat}&longitude=${l.lon}&method=1&school=1`);
+        const extra = isHanafi(l) ? '&method=1&school=1' : '';
+        const res = await fetchJson(`https://api.aladhan.com/v1/timings/${d}-${m}-${y}?latitude=${l.lat}&longitude=${l.lon}${extra}`);
         timings = {};
         PRAYERS.forEach(p => { timings[p] = toMinutes(res.data.timings[p]); });
         NT.save({ prayerCache: { key, timings } });
@@ -84,9 +97,8 @@
   }
 
   function nextPrayer() {
-    const now = NT.nowDhaka().minutes;
-    const list = PRAYERS.filter(p => p !== 'Sunrise');
-    for (const p of list) if (prayer[p] > now) return { name: p, in: prayer[p] - now };
+    const now = NT.nowIn(loc.tz).minutes;
+    for (const p of PRAYERS.filter(x => x !== 'Sunrise')) if (prayer[p] > now) return { name: p, in: prayer[p] - now };
     return { name: 'Fajr', in: prayer.Fajr + 1440 - now };
   }
 
@@ -99,13 +111,15 @@
     }
     nextEl = el('div', { class: 'next-prayer' });
     pBody.append(nextEl, ...PRAYERS.map(p => el('div', { class: 'prayer-row' + (p === 'Sunrise' ? ' sun' : ''), 'data-p': p }, el('span', { text: p }), el('span', { text: NT.fmtMin(prayer[p]) }))),
-      el('p', { class: 'empty small', text: 'Source: AlAdhan (Karachi method, Hanafi Asr). Can differ by 1–2 minutes from your local mosque timetable.' }));
+      el('p', { class: 'empty small', text: isHanafi(loc)
+        ? 'Source: AlAdhan (Karachi method, Hanafi Asr). May differ by 1–2 minutes from your local mosque timetable.'
+        : 'Source: AlAdhan (method picked for your location). May differ by a few minutes from your local mosque timetable.' }));
     updateNext();
   }
 
   function updateNext() {
-    if (!prayer || !nextEl) return;
-    const n = nextPrayer(), now = NT.nowDhaka().minutes;
+    if (!prayer || !nextEl || !loc) return;
+    const n = nextPrayer(), now = NT.nowIn(loc.tz).minutes;
     const h = Math.floor(n.in / 60), m = n.in % 60;
     nextEl.textContent = '';
     nextEl.append('Next: ', el('strong', { text: n.name }), ` in ${h ? h + 'h ' : ''}${m}m`);
@@ -120,9 +134,15 @@
     if (loading) return;
     loading = true;
     try {
-      usedCity = state.settings.city;
+      usedKey = locKey();
       loc = await getLoc();
-      pTitle.textContent = `🕌 Prayer Times · ${loc.name}`;
+      if (!loc) {
+        const msg = el('p', { class: 'empty', text: "Couldn't find your city. Open Settings ▸ Time & location and enter a city." });
+        wBody.textContent = ''; wBody.append(msg.cloneNode(true));
+        pBody.textContent = ''; pBody.append(msg);
+        return;
+      }
+      pTitle.textContent = `Prayer Times · ${loc.name}`;
       await Promise.all([loadWeather(loc), loadPrayer(loc)]);
     } finally { loading = false; }
   }
@@ -136,11 +156,11 @@
     pBody.append(el('p', { class: 'empty', text: 'Loading…' }));
     loadAll();
     NT.on('tick', () => {
-      if (prayer && NT.todayStr() !== prayerDay && !loading) loadAll();
+      if (prayer && loc && NT.nowIn(loc.tz).ymd !== prayerDay && !loading) loadAll();
       updateNext();
     });
     NT.on('settings', () => {
-      if (state.settings.city !== usedCity) { loadAll(); return; }
+      if (locKey() !== usedKey) { loadAll(); return; }
       if (prayer && usedHour12 !== state.settings.hour12) renderPrayer(false);
     });
   });

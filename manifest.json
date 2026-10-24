@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Nova Tab – Student Dashboard & Search",
-  "version": "2.0.0",
-  "description": "A beautiful new tab for students: multi-engine & AI search, Bangladesh time, Pomodoro, assignments, exams, class routine, CGPA, prayer times, weather, focus mode and more.",
+  "version": "3.0.0",
+  "description": "A beautiful new tab for students: multi-engine & AI search, your local time, search suggestions, Pomodoro, assignments, exams, class routine, CGPA, prayer times, weather, focus mode and more.",
   "permissions": ["storage", "alarms", "notifications"],
+  "host_permissions": ["https://suggestqueries.google.com/*", "https://duckduckgo.com/ac/*"],
   "optional_permissions": ["tabs", "declarativeNetRequest"],
   "optional_host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },

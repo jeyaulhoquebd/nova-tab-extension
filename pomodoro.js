@@ -102,6 +102,9 @@
     const s = Math.ceil(ms / 1000);
     const mm = String(Math.floor(s / 60)).padStart(2, '0'), ss = String(s % 60).padStart(2, '0');
     ui.time.textContent = `${mm}:${ss}`;
+    ui.modeLbl.textContent = LABEL[pomo.mode];
+    const total = dur(pomo.mode);
+    ui.arc.style.strokeDashoffset = String(553 * (1 - (total ? Math.min(1, ms / total) : 0)));
     ui.toggle.textContent = pomo.running ? 'Pause' : (ms < dur(pomo.mode) ? 'Resume' : 'Start');
     ui.tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === pomo.mode));
     document.title = pomo.running ? `${mm}:${ss} · ${LABEL[pomo.mode]}` : 'New Tab';
@@ -132,13 +135,18 @@
     pomo = r.pomo || { mode: 'focus', running: false, endsAt: null, remaining: dur('focus'), cycle: 0 };
 
     ui.tabs = Object.keys(LABEL).map(m => el('button', { type: 'button', class: 'pomo-tab', 'data-mode': m, text: LABEL[m], onclick: () => setMode(m) }));
-    ui.time = el('div', { class: 'pomo-time', text: '25:00' });
+    ui.ring = el('div', { class: 'ring' });
+    ui.ring.innerHTML = '<svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--accent)"/><stop offset="1" style="stop-color:var(--accent2)"/></linearGradient></defs><circle class="ring-track" cx="100" cy="100" r="88"/><circle class="ring-bar" cx="100" cy="100" r="88" stroke="url(#rg)"/></svg>';
+    ui.time = el('div', { class: 'ring-time', text: '25:00' });
+    ui.modeLbl = el('div', { class: 'ring-mode', text: 'Focus' });
+    ui.ring.append(el('div', { class: 'ring-center' }, ui.time, ui.modeLbl));
+    ui.arc = ui.ring.querySelector('.ring-bar');
     ui.toggle = el('button', { type: 'button', class: 'btn primary', text: 'Start', onclick: () => (pomo.running ? pause() : start()) });
     ui.today = el('span'); ui.streak = el('span', { class: 'muted' });
     ui.bar = el('span'); ui.bars = el('div', { class: 'bars' });
     const c = NT.card('Focus Timer', { icon: '⏱️' });
     c.body.append(
-      el('div', { class: 'pomo-tabs' }, ui.tabs), ui.time,
+      el('div', { class: 'pomo-tabs' }, ui.tabs), ui.ring,
       el('div', { class: 'pomo-btns' }, ui.toggle,
         el('button', { type: 'button', class: 'btn ghost', text: 'Reset', onclick: reset }),
         el('button', { type: 'button', class: 'btn ghost', text: 'Skip', onclick: skip })),

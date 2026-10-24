@@ -7,9 +7,9 @@
   const saveRoutine = () => NT.save({ routine });
 
   function renderRoutine() {
-    const now = NT.nowDhaka();
+    const now = NT.nowTz();
     lastMinute = now.minutes;
-    routineUi.title.textContent = `📚 Today · ${DAY_NAMES[now.day]}`;
+    routineUi.title.textContent = `Today · ${DAY_NAMES[now.day]}`;
     const list = routine.filter(c => c.days.includes(now.day)).sort((a, b) => NT.toMin(a.start) - NT.toMin(b.start));
     routineUi.body.textContent = '';
     if (!list.length) {
@@ -99,7 +99,7 @@
 
   /* ---------------- Exams ---------------- */
   const saveExams = () => NT.save({ exams });
-  const examTarget = x => Date.parse(`${x.date}T${x.time || '00:00'}:00+06:00`);
+  const examTarget = x => NT.zonedToMs(x.date, x.time || '00:00');
   let exUi = {};
   function renderExams() {
     exUi.list.textContent = '';
@@ -110,7 +110,7 @@
     const row = (x, isPast) => el('li', { class: 'item' + (isPast ? ' dim' : '') },
       el('div', { class: 'item-main' }, el('div', { class: 'item-title', text: x.name }),
         el('div', { class: 'item-sub', text: NT.prettyDate(x.date) + (x.time ? ' · ' + NT.fmtMin(NT.toMin(x.time)) : '') })),
-      el('span', { class: 'badge count', 'data-id': x.id, text: '' }),
+      el('span', { class: 'badge count', 'data-id': x.id, 'data-t': String(examTarget(x)), text: '' }),
       el('button', { type: 'button', class: 'del', title: 'Delete', text: '✕', onclick: () => { exams = exams.filter(e => e.id !== x.id); saveExams(); renderExams(); } }));
     exUi.list.append(el('ul', { class: 'list' }, upcoming.map(x => row(x, false)), past.map(x => row(x, true))));
     tickExams();
@@ -119,7 +119,7 @@
     document.querySelectorAll('.badge.count').forEach(b => {
       const x = exams.find(e => e.id === b.dataset.id);
       if (!x) return;
-      const ms = examTarget(x) - Date.now();
+      const ms = parseInt(b.dataset.t, 10) - Date.now();
       if (ms > 0) { b.textContent = NT.fmtCountdown(ms); b.className = 'badge count' + (ms < 3 * 864e5 ? ' warn' : ''); }
       else if (x.date === NT.todayStr()) { b.textContent = 'Today!'; b.className = 'badge count bad'; }
       else { b.textContent = 'Passed'; b.className = 'badge count'; }
@@ -128,12 +128,12 @@
 
   /* ---------------- Init ---------------- */
   NT.register(async () => {
-    const r = await NT.load(['assignments', 'exams', 'routine', 'notes']);
+    const r = await NT.load(['assignments', 'exams', 'routine']);
     assignments = r.assignments || []; exams = r.exams || []; routine = r.routine || [];
 
     // Class routine card
     routineUi.title = null;
-    const rc = NT.card('Today', { actions: [
+    const rc = NT.card('Today', { icon: '📚', actions: [
       el('button', { type: 'button', class: 'mini-btn', text: '＋', title: 'Add class', onclick: () => classForm() }),
       el('button', { type: 'button', class: 'mini-btn', text: 'Edit', onclick: editRoutine })] });
     routineUi.title = rc.head.querySelector('h3'); routineUi.body = rc.body;
@@ -170,22 +170,9 @@
     ec.body.append(exUi.list);
     renderExams();
 
-    // Notes card
-    const ta = el('textarea', { placeholder: 'Write anything here — it saves automatically.' });
-    ta.value = r.notes || '';
-    const status = el('span', { class: 'muted small', text: '' });
-    let timer;
-    ta.addEventListener('input', () => {
-      status.textContent = 'Saving…';
-      clearTimeout(timer);
-      timer = setTimeout(() => { NT.save({ notes: ta.value }).then(() => { status.textContent = 'Saved ✓'; }); }, 400);
-    });
-    const nc = NT.card('Quick Notes', { icon: '🗒️', actions: [status] });
-    nc.body.append(ta);
-
     NT.on('tick', () => {
       tickExams();
-      if (NT.nowDhaka().minutes !== lastMinute) renderRoutine();
+      if (NT.nowTz().minutes !== lastMinute) renderRoutine();
     });
     NT.on('settings', () => { renderRoutine(); renderExams(); });
   });

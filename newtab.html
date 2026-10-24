@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+  <div class="grain" aria-hidden="true"></div>
   <div id="bgImg" class="bg-img" aria-hidden="true"></div>
 
   <div id="focusBanner" class="focus-banner" hidden>
@@ -33,19 +34,20 @@
       </div>
       <div id="date" class="date"></div>
       <div id="greeting" class="greeting"></div>
-      <div class="tz">Bangladesh Standard Time (GMT+6)</div>
+      <div class="locchip"><span class="live-dot"></span><span id="tzLabel"></span></div>
     </section>
 
     <div class="search-wrap">
       <form id="searchForm" class="search" autocomplete="off">
         <img id="engineIcon" class="engine-icon" alt="">
-        <input id="q" type="text" placeholder="Search the web…" spellcheck="false" autofocus>
+        <input id="q" type="text" placeholder="Search the web…" spellcheck="false" autocomplete="off" autofocus>
         <button type="button" id="promptBtn" class="icon-btn" title="Prompt library" aria-label="Prompt library">✨</button>
         <button type="submit" class="go" aria-label="Search">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </button>
       </form>
       <div id="promptPanel" class="panel" hidden></div>
+      <div id="suggestPanel" class="panel suggest" hidden></div>
     </div>
 
     <nav id="engines" class="engines" aria-label="Search engines"></nav>
@@ -75,10 +77,13 @@
   <script src="clock.js"></script>
   <script src="search.js"></script>
   <script src="prompts.js"></script>
+  <script src="suggest.js"></script>
   <script src="shortcuts.js"></script>
   <script src="pomodoro.js"></script>
   <script src="planner.js"></script>
   <script src="world.js"></script>
+  <script src="worldclock.js"></script>
+  <script src="notes.js"></script>
   <script src="cgpa.js"></script>
   <script src="focus.js"></script>
   <script src="sessions.js"></script>

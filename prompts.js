@@ -53,7 +53,7 @@
     const r = await NT.load(['prompts']);
     if (Array.isArray(r.prompts)) prompts = r.prompts; else { prompts = DEFAULT_PROMPTS.map(p => ({ ...p })); persist(); }
     render();
-    $('promptBtn').addEventListener('click', () => { panel().hidden = !panel().hidden; });
+    $('promptBtn').addEventListener('click', () => { if (NT.suggest) NT.suggest.hide(); panel().hidden = !panel().hidden; });
     document.addEventListener('click', ev => { if (!panel().hidden && !ev.target.closest('.search-wrap') && !ev.target.closest('dialog')) panel().hidden = true; });
     document.addEventListener('keydown', ev => { if (ev.key === 'Escape') panel().hidden = true; });
   });

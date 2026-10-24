@@ -29,6 +29,8 @@
     mdn: { name: 'MDN Docs', q: 'https://developer.mozilla.org/en-US/search?q=' }
   });
 
+  NT.bangs = BANGS;
+
   let engineId = 'google';
   let compare = false;
   let selected = new Set(['chatgpt', 'claude', 'perplexity', 'google']);
@@ -94,6 +96,7 @@
     const text = $('q').value.trim();
     if (!text) { if (!compare) location.href = current().home; return; }
     if (looksLikeUrl(text)) { location.href = /^https?:\/\//i.test(text) ? text : 'https://' + text; return; }
+    if (NT.suggest) await NT.suggest.remember(text);
     const bang = parseBang(text);
     if (bang) {
       if (!bang.target.q) await copyText(bang.query);
