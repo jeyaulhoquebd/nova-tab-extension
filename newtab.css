@@ -317,6 +317,12 @@ html.tab-hidden .blob, html.tab-hidden .weather-icon, html.tab-hidden .live-dot 
 /* AI */
 .ai-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .ai-bar select { width: auto !important; max-width: 52%; padding: 8px 12px !important; font-size: 13px !important; }
+.ai-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
+.ai-controls select { max-width: 190px; }
+.ai-controls .mini-btn { white-space: nowrap; }
+.ai-history { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
+.ai-history input { accent-color: var(--accent); }
+.focus-presets { display: flex; flex-wrap: wrap; gap: 7px; }
 .ai-msgs { height: min(46vh, 420px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 10px; scroll-behavior: smooth; }
 .ai-msg { position: relative; max-width: 92%; padding: 11px 15px; border-radius: 18px; font-size: 14.5px; line-height: 1.55; word-wrap: break-word; }
 .ai-msg.user { align-self: flex-end; background: var(--grad); color: #fff; border-bottom-right-radius: 6px; white-space: pre-wrap; }
@@ -380,7 +386,12 @@ html.tab-hidden .blob, html.tab-hidden .weather-icon, html.tab-hidden .live-dot 
 .add-widget .fav { background: var(--glass); color: var(--text); font-size: 26px; font-weight: 300; box-shadow: none; }
 .api-doc { padding: 14px; border-radius: 14px; background: rgba(0,0,0,0.3); color: #e2e8f0; font: 12px/1.6 ui-monospace, Menlo, Consolas, monospace; overflow-x: auto; white-space: pre; }
 
-@media (max-width: 560px) { .fc-grades { grid-template-columns: repeat(2, 1fr); } .sub-bar { grid-template-columns: 80px 1fr 40px; } }
+@media (max-width: 560px) {
+  .fc-grades { grid-template-columns: repeat(2, 1fr); }
+  .sub-bar { grid-template-columns: 80px 1fr 40px; }
+  .ai-bar { align-items: flex-start; flex-direction: column; }
+  .ai-controls { justify-content: flex-start; }
+}
 
 /* credit & about */
 .credit { position: fixed; left: 18px; bottom: 20px; z-index: 4; font-size: 12px; color: var(--muted); padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }

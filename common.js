@@ -49,7 +49,8 @@
     hour12: true, showSeconds: true, name: '', mode: 'dark', wallpaper: 'none',
     dailyGoal: 120, focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4,
     blockDuringPomodoro: false, city: '', timezone: 'auto', liveLocation: false, suggest: true, recent: true, linkPreview: true, linkFetch: false, lite: false,
-    blockList: ['facebook.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'reddit.com', 'netflix.com']
+    blockList: ['facebook.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'reddit.com', 'netflix.com'],
+    focusAllowList: []
   };
   const state = { settings: { ...DEFAULTS } };
   const saveSettings = () => save({ settings: state.settings });

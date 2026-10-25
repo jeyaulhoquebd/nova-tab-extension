@@ -11,6 +11,12 @@
     { id: 'amber', name: 'Amber', g1: '#1c1203', g2: '#78350f', g3: '#d97706', accent: '#f59e0b', accent2: '#ef4444' },
     { id: 'midnight', name: 'Midnight', g1: '#05060d', g2: '#111827', g3: '#1f2a44', accent: '#6366f1', accent2: '#8b5cf6' }
   ];
+  const ISLAMIC_WALLPAPERS = [
+    { id: 'islamic-madinah', name: 'Madinah · Green Dome', photo: '33840568', credit: 'https://www.pexels.com/photo/al-masjid-an-nabawi-mosque-in-madinah-saudi-arabia-33840568/' },
+    { id: 'islamic-sunset', name: 'Süleymaniye · Sunset', photo: '38498299', credit: 'https://www.pexels.com/photo/suleymaniye-mosque-at-sunset-in-istanbul-38498299/' },
+    { id: 'islamic-interior', name: 'Mosque · Lantern-lit interior', photo: '27397439', credit: 'https://www.pexels.com/photo/the-interior-of-a-mosque-with-many-lights-27397439/' },
+    { id: 'islamic-minaret', name: 'Süleymaniye · Minarets', photo: '17824658', credit: 'https://www.pexels.com/photo/minaret-of-suleymaniye-mosque-17824658/' }
+  ];
 
   function applyTheme(id, persist = true) {
     const t = THEMES.find(x => x.id === id) || THEMES[0];
@@ -25,7 +31,11 @@
     document.documentElement.dataset.mode = s.mode === 'light' ? 'light' : 'dark';
     let url = '';
     if (s.wallpaper === 'daily') url = `https://picsum.photos/seed/nova-${NT.todayStr()}/1920/1080`;
-    else if (s.wallpaper === 'custom') url = (await NT.load(['bgImage'])).bgImage || '';
+    else {
+      const photo = ISLAMIC_WALLPAPERS.find(item => item.id === s.wallpaper);
+      if (photo) url = `https://images.pexels.com/photos/${photo.photo}/pexels-photo-${photo.photo}.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop`;
+    }
+    if (s.wallpaper === 'custom') url = (await NT.load(['bgImage'])).bgImage || '';
     $('bgImg').style.backgroundImage = url ? `url("${url}")` : '';
     document.documentElement.classList.toggle('has-image', !!url);
     document.documentElement.classList.toggle('lite', !!s.lite);
@@ -115,8 +125,26 @@
       try { const data = await readImage(f); await NT.save({ bgImage: data }); set('wallpaper', 'custom'); NT.toast('Wallpaper updated'); } catch (e) { NT.toast('Could not use that image.'); }
     } });
     const importFile = el('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: ev => { if (ev.target.files[0]) importData(ev.target.files[0]); } });
-    const wall = el('select', { onchange: ev => { if (ev.target.value === 'custom') { file.click(); ev.target.value = state.settings.wallpaper; } else set('wallpaper', ev.target.value); } },
-      [['none', 'Colour theme only'], ['daily', 'Daily photo (online)'], ['custom', 'My own photo…']].map(([v, l]) => el('option', { value: v, selected: v === s.wallpaper }, l)));
+    const photoCredit = el('p', { class: 'empty small', hidden: true });
+    const wall = el('select', { onchange: ev => {
+      const selectedPhoto = ISLAMIC_WALLPAPERS.find(item => item.id === ev.target.value);
+      if (ev.target.value === 'custom') { file.click(); ev.target.value = state.settings.wallpaper; }
+      else set('wallpaper', ev.target.value);
+      photoCredit.textContent = '';
+      if (selectedPhoto) {
+        photoCredit.append('Photo from Pexels · ', el('a', { href: selectedPhoto.credit, target: '_blank', rel: 'noopener noreferrer', text: 'view photo' }));
+        photoCredit.hidden = false;
+      } else photoCredit.hidden = true;
+    } }, [
+      ...[['none', 'Colour theme only'], ['daily', 'Daily photo (online)']].map(([v, l]) => el('option', { value: v, selected: v === s.wallpaper }, l)),
+      ...ISLAMIC_WALLPAPERS.map(photo => el('option', { value: photo.id, selected: photo.id === s.wallpaper }, photo.name)),
+      el('option', { value: 'custom', selected: s.wallpaper === 'custom' }, 'My own photo…')
+    ]);
+    const selectedPhoto = ISLAMIC_WALLPAPERS.find(item => item.id === s.wallpaper);
+    if (selectedPhoto) {
+      photoCredit.append('Photo from Pexels · ', el('a', { href: selectedPhoto.credit, target: '_blank', rel: 'noopener noreferrer', text: 'view photo' }));
+      photoCredit.hidden = false;
+    }
     const mode = el('select', { onchange: ev => set('mode', ev.target.value) }, [['dark', 'Dark'], ['light', 'Light']].map(([v, l]) => el('option', { value: v, selected: v === s.mode }, l)));
 
     const fetchChk = el('input', { type: 'checkbox', checked: s.linkFetch === true, onchange: async ev => {
@@ -130,7 +158,7 @@
     } });
 
     const root = el('div', {},
-      sec('Display', row('Your name', name, 'Shown in the greeting'), row('12-hour clock (AM/PM)', check('hour12')), row('Show seconds', check('showSeconds')), row('Lite mode', check('lite'), 'Fewer effects — faster on older computers'), row('Appearance', mode), row('Background', wall), file),
+      sec('Display', row('Your name', name, 'Shown in the greeting'), row('12-hour clock (AM/PM)', check('hour12')), row('Show seconds', check('showSeconds')), row('Lite mode', check('lite'), 'Fewer effects — faster on older computers'), row('Appearance', mode), row('Background', wall), photoCredit, file),
       sec('Time & location', row('Time zone', zone, 'Auto uses your device time zone'), row('City for weather & prayer', city, 'Leave empty to use your time zone'),
         row('Use live location', liveLocation, 'Allow location access to update weather and prayer times. Coordinates stay on this device.')),
       sec('Search', row('Search suggestions', check('suggest'), 'Sends what you type to Google to get suggestions'), row('Recent searches', check('recent'), 'Stored only on this device'),

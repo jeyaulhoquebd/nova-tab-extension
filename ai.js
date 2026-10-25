@@ -5,7 +5,7 @@
   const FALLBACK_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
   const PREFERRED = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'llama-3.1-8b-instant'];
   const NON_CHAT = /whisper|tts|guard|embed|orpheus|playai|safeguard|transcri/i;
-  let cfg = { key: '', model: '', models: [], lang: 'auto' };
+  let cfg = { key: '', model: '', models: [], lang: 'auto', style: 'tutor', detail: 'standard', useHistory: true };
   let history = [];
   const persistCfg = () => NT.save({ ai: cfg });
   const persistChat = () => NT.save({ aiChat: history.slice(-30) });
@@ -63,7 +63,18 @@
   function system(extra) {
     const l = cfg.lang;
     const lang = l === 'bn' ? 'Always answer in Bengali (বাংলা).' : l === 'en' ? 'Always answer in English.' : 'Reply in the same language the user writes in.';
-    return `You are Nova, a friendly study assistant inside a student's new-tab page. Be accurate, clear and concise. Use short paragraphs, bullet points and simple examples. If you are not sure, say so. ${lang} ${extra || ''}`.trim();
+    const styles = {
+      tutor: 'Teach patiently and explain the reasoning in clear steps.',
+      socratic: 'Guide learning with brief questions and hints before giving a complete solution.',
+      exam: 'Act as an exam coach: emphasize key facts, common mistakes, and how to earn marks.',
+      concise: 'Be direct and concise; prioritize the answer over extra explanation.'
+    };
+    const details = {
+      brief: 'Keep the answer very short.',
+      standard: 'Use a useful level of detail without unnecessary repetition.',
+      detailed: 'Give a thorough explanation with examples and a short recap when helpful.'
+    };
+    return `You are Nova, a friendly study assistant inside a student's new-tab page. Be accurate, clear, and honest about uncertainty. Use readable formatting. ${lang} ${styles[cfg.style] || styles.tutor} ${details[cfg.detail] || details.standard} ${extra || ''}`.trim();
   }
   const ask = (prompt, opts = {}) => chat([{ role: 'system', content: system(opts.system) }, { role: 'user', content: prompt }], opts);
 
@@ -121,7 +132,9 @@
     ['Summarize', 'Summarize the following in 5 short bullet points: '],
     ['Quiz me', 'Ask me 5 multiple-choice questions on this topic, one at a time: '],
     ['Study plan', 'Make a 7-day study plan for this topic: '],
-    ['Translate to Bengali', 'Translate this into natural Bengali: ']
+    ['Translate to Bengali', 'Translate this into natural Bengali: '],
+    ['Practice questions', 'Create 5 exam-style practice questions with answers and brief explanations about: '],
+    ['Memory aids', 'Create memorable mnemonics and a quick recall checklist for: ']
   ];
 
   function open(prefill, autoSend) {
@@ -172,8 +185,15 @@
       const models = cfg.models.length ? cfg.models : FALLBACK_MODELS;
       const modelSel = el('select', { 'aria-label': 'Model', onchange: ev => { cfg.model = ev.target.value; persistCfg(); } },
         models.map(m => el('option', { value: m, selected: m === cfg.model }, m)));
+      const styleSel = el('select', { 'aria-label': 'Tutoring style', title: 'Choose how Nova teaches', onchange: ev => { cfg.style = ev.target.value; persistCfg(); } },
+        [['tutor', 'Step-by-step tutor'], ['socratic', 'Socratic coach'], ['exam', 'Exam coach'], ['concise', 'Concise']].map(([value, label]) => el('option', { value, selected: value === cfg.style }, label)));
+      const detailSel = el('select', { 'aria-label': 'Answer detail', title: 'Choose answer length', onchange: ev => { cfg.detail = ev.target.value; persistCfg(); } },
+        [['brief', 'Brief'], ['standard', 'Standard'], ['detailed', 'Detailed']].map(([value, label]) => el('option', { value, selected: value === cfg.detail }, label)));
+      const historyChk = el('input', { type: 'checkbox', checked: cfg.useHistory !== false, 'aria-label': 'Include conversation history', onchange: ev => { cfg.useHistory = ev.target.checked; persistCfg(); } });
 
       const scroll = () => { msgs.scrollTop = msgs.scrollHeight; };
+      let retryAnswer = null;
+      let retryBubble = null, retrySucceeded = false;
       function paint(bubble, text) {
         bubble._text = text;
         bubble.textContent = '';
@@ -189,39 +209,74 @@
       history.forEach(m => addMsg(m.role, m.content));
       if (!history.length) msgs.append(el('p', { class: 'empty ai-hello', text: 'Hi! Ask a question, paste your notes, or tap a shortcut below. 👇' }));
 
-      async function send(text) {
+      async function send(text, retry = false) {
         text = (text || '').trim();
-        if (!text || controller) return;
+        if ((!text && !retry) || controller) return;
         const hello = msgs.querySelector('.ai-hello'); if (hello) hello.remove();
-        history.push({ role: 'user', content: text });
-        addMsg('user', text);
-        input.value = '';
+        if (retry) {
+          retrySucceeded = false;
+          if (history[history.length - 1] && history[history.length - 1].role === 'assistant') retryAnswer = history.pop();
+          text = [...history].reverse().find(m => m.role === 'user')?.content || '';
+          if (!text) return;
+          retryBubble = [...msgs.querySelectorAll('.ai-msg.assistant:not(.typing):not(.error)')].pop() || null;
+        } else {
+          retryAnswer = null; retryBubble = null; retrySucceeded = false;
+          history.push({ role: 'user', content: text });
+          addMsg('user', text);
+          input.value = '';
+        }
         const bubble = addMsg('assistant', '');
         bubble.classList.add('typing');
         controller = new AbortController();
         stopBtn.hidden = false; sendBtn.disabled = true;
+        retryBtn.disabled = true;
         let last = 0;
         try {
-          const full = await chat([{ role: 'system', content: system() }, ...history.slice(-14)], {
+          const userMessages = cfg.useHistory === false
+            ? [{ role: 'user', content: text }]
+            : history.slice(-14);
+          const full = await chat([{ role: 'system', content: system() }, ...userMessages], {
             signal: controller.signal,
             onDelta: (d, f) => { const now = Date.now(); if (now - last > 50) { last = now; paint(bubble, f); scroll(); } }
           });
-          history.push({ role: 'assistant', content: full }); paint(bubble, full);
+          history.push({ role: 'assistant', content: full }); paint(bubble, full); retrySucceeded = true;
         } catch (e) {
-          if (e.name === 'AbortError') { if (bubble._text) history.push({ role: 'assistant', content: bubble._text }); else { history.pop(); bubble.remove(); } }
-          else { bubble.classList.add('error'); bubble.textContent = e.message; history.pop(); }
+          if (e.name === 'AbortError') {
+            if (bubble._text) { history.push({ role: 'assistant', content: bubble._text }); retrySucceeded = retry; }
+            else {
+              if (!retry) history.pop();
+              else if (retryAnswer) history.push(retryAnswer);
+              bubble.remove();
+            }
+          } else {
+            bubble.classList.add('error'); bubble.textContent = e.message;
+            if (!retry) history.pop();
+            else if (retryAnswer) history.push(retryAnswer);
+          }
         } finally {
-          controller = null; stopBtn.hidden = true; sendBtn.disabled = false; bubble.classList.remove('typing');
+          if (retrySucceeded && retryBubble) retryBubble.remove();
+          controller = null; stopBtn.hidden = true; sendBtn.disabled = false; retryBtn.disabled = false; retryBtn.hidden = !history.some(m => m.role === 'assistant');
+          bubble.classList.remove('typing');
           if (bubble._text) paint(bubble, bubble._text);
           persistChat(); scroll();
         }
       }
+      const retryBtn = el('button', { type: 'button', class: 'mini-btn', text: '↻ Regenerate', hidden: !history.some(m => m.role === 'assistant'), onclick: () => send('', true) });
+      const exportBtn = el('button', { type: 'button', class: 'mini-btn', text: '↓ Export chat', onclick: () => {
+        if (!history.length) { NT.toast('There is no conversation to export yet.'); return; }
+        const transcript = history.map(m => `${m.role === 'assistant' ? 'Nova' : 'You'}:\n${m.content}`).join('\n\n');
+        const url = URL.createObjectURL(new Blob([transcript], { type: 'text/plain;charset=utf-8' }));
+        const link = el('a', { href: url, download: `nova-ai-chat-${new Date().toISOString().slice(0, 10)}.txt` });
+        document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } });
       sendBtn.addEventListener('click', () => send(input.value));
       stopBtn.addEventListener('click', () => { if (controller) controller.abort(); });
       input.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(input.value); } });
 
       const view = el('div', {},
-        el('div', { class: 'ai-bar' }, modelSel, el('div', { class: 'btn-row' },
+        el('div', { class: 'ai-bar' }, modelSel, el('div', { class: 'ai-controls' },
+          styleSel, detailSel, el('label', { class: 'ai-history', title: 'Include earlier messages in Nova’s context' }, historyChk, el('span', { text: 'Context' })),
+          retryBtn, exportBtn,
           el('button', { type: 'button', class: 'mini-btn', text: '＋ New chat', onclick: () => { if (controller) controller.abort(); history = []; persistChat(); draw(); } }),
           el('button', { type: 'button', class: 'mini-btn', text: '⚙ Setup', onclick: () => { showSetup = true; draw(); } }))),
         msgs,
