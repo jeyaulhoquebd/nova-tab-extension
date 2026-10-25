@@ -87,7 +87,26 @@
   function openSettings() {
     const s = state.settings;
     const name = el('input', { type: 'text', value: s.name, maxlength: 20, placeholder: 'Your name', onchange: ev => set('name', ev.target.value.trim()) });
-    const city = el('input', { type: 'text', value: s.city, maxlength: 40, placeholder: 'Auto (from time zone)', onchange: ev => set('city', ev.target.value.trim()) });
+    let liveLocation;
+    const city = el('input', { type: 'text', value: s.city, maxlength: 40, placeholder: 'Auto (from time zone)', onchange: ev => {
+      if (state.settings.liveLocation) {
+        state.settings.liveLocation = false;
+        liveLocation.checked = false;
+      }
+      set('city', ev.target.value.trim());
+    } });
+    liveLocation = el('input', { type: 'checkbox', checked: s.liveLocation === true, onchange: async ev => {
+      const enabled = ev.target.checked;
+      ev.target.disabled = true;
+      try {
+        if (enabled) await NT.world.enableLiveLocation();
+        else await NT.world.disableLiveLocation();
+        NT.toast(enabled ? 'Live location enabled for weather and prayer times.' : 'Live location disabled.');
+      } catch (e) {
+        ev.target.checked = false;
+        NT.toast(e.message);
+      } finally { ev.target.disabled = false; }
+    } });
     const zoneOpts = [el('option', { value: 'auto', selected: !s.timezone || s.timezone === 'auto' }, `Auto-detect (${NT.deviceTz()})`),
       ...NT.allZones().map(z => el('option', { value: z, selected: s.timezone === z }, z.replace(/_/g, ' ')))];
     const zone = el('select', { onchange: ev => set('timezone', ev.target.value) }, zoneOpts);
@@ -112,7 +131,8 @@
 
     const root = el('div', {},
       sec('Display', row('Your name', name, 'Shown in the greeting'), row('12-hour clock (AM/PM)', check('hour12')), row('Show seconds', check('showSeconds')), row('Lite mode', check('lite'), 'Fewer effects — faster on older computers'), row('Appearance', mode), row('Background', wall), file),
-      sec('Time & location', row('Time zone', zone, 'Auto uses your device location'), row('City for weather & prayer', city, 'Leave empty to use your time zone')),
+      sec('Time & location', row('Time zone', zone, 'Auto uses your device time zone'), row('City for weather & prayer', city, 'Leave empty to use your time zone'),
+        row('Use live location', liveLocation, 'Allow location access to update weather and prayer times. Coordinates stay on this device.')),
       sec('Search', row('Search suggestions', check('suggest'), 'Sends what you type to Google to get suggestions'), row('Recent searches', check('recent'), 'Stored only on this device'),
         el('div', { class: 'btn-row' }, el('button', { type: 'button', class: 'btn ghost', text: 'Clear recent searches', onclick: async () => { await NT.suggest.clear(); NT.toast('Recent searches cleared'); } }))),
       sec('AI & tools',

@@ -15,6 +15,7 @@ Updating? Copy these files over your old folder, then press the reload button on
 - 📝 **Pomodoro session notes & tags** + searchable Study log with weekly subject totals
 - 🔗 **Link previews** – hover a saved site to see its note (optional: fetch page title/description)
 - 🤝 **Share with friends** (share codes, no server) and ☁ **Chrome Sync** backup for your other computers
+- 📍 **Live location** – opt in to refresh local weather and prayer times using your current location; coordinates stay on this device
 - 🧩 **Widgets** – build your own sandboxed mini apps (HTML/CSS/JS) with a small `Nova` API
 - ♿ **Accessibility & speed** – keyboard focus rings, skip link, screen-reader labels, Lite mode, paused animations in hidden tabs
 

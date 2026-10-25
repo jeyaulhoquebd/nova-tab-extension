@@ -27,7 +27,17 @@
     clear(area) {
       return new Promise(resolve => {
         if (hasChrome) { chrome.storage[area].clear(() => resolve()); return; }
-        localStorage.clear(); resolve();
+        const prefix = area + ':';
+        const keep = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(prefix)) continue;
+          const value = localStorage.getItem(key);
+          if (key !== null && value !== null) keep.push([key, value]);
+        }
+        localStorage.clear();
+        keep.forEach(([key, value]) => { try { localStorage.setItem(key, value); } catch (e) {} });
+        resolve();
       });
     }
   };
@@ -38,7 +48,7 @@
   const DEFAULTS = {
     hour12: true, showSeconds: true, name: '', mode: 'dark', wallpaper: 'none',
     dailyGoal: 120, focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4,
-    blockDuringPomodoro: false, city: '', timezone: 'auto', suggest: true, recent: true, linkPreview: true, linkFetch: false, lite: false,
+    blockDuringPomodoro: false, city: '', timezone: 'auto', liveLocation: false, suggest: true, recent: true, linkPreview: true, linkFetch: false, lite: false,
     blockList: ['facebook.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'reddit.com', 'netflix.com']
   };
   const state = { settings: { ...DEFAULTS } };
