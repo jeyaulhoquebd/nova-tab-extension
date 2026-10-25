@@ -33,6 +33,33 @@
     await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existing.map(r => r.id), addRules });
   }
 
+  const matchesFromList = (hostname, domains) => domains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
+
+  async function blockAlreadyOpenTabs(domains, allowDomains) {
+    if (!chrome.tabs || !chrome.runtime) return;
+    let tabs;
+    try { tabs = await chrome.tabs.query({}); } catch (e) {
+      console.error('Could not check open tabs for Focus Mode', e);
+      NT.toast('Focus Mode started, but open sites could not be checked.');
+      return;
+    }
+    const blockedTabs = tabs.filter(tab => {
+      if (tab.id == null || !tab.url) return false;
+      let hostname;
+      try { hostname = new URL(tab.url).hostname; } catch (e) { return false; }
+      return matchesFromList(hostname, domains) && !matchesFromList(hostname, allowDomains);
+    });
+    let failedRedirects = 0;
+    await Promise.all(blockedTabs.map(async tab => {
+      try { await chrome.tabs.update(tab.id, { url: chrome.runtime.getURL('blocked.html') }); }
+      catch (e) {
+        failedRedirects += 1;
+        console.error('Could not redirect an open blocked tab', e);
+      }
+    }));
+    if (failedRedirects) NT.toast(`Focus Mode could not redirect ${failedRedirects} already-open site tab${failedRedirects === 1 ? '' : 's'}.`);
+  }
+
   async function start({ until, source = 'manual', domains: requestedDomains, allowDomains: requestedAllowDomains } = {}) {
     const normalizeList = list => [...new Set((list || []).map(cleanDomain).filter(Boolean))];
     const domains = normalizeList(requestedDomains || state.settings.blockList || []);
@@ -49,9 +76,14 @@
     const ok = await ensurePerms();
     if (!ok) { NT.toast('Focus Mode needs permission to block sites. Please allow it.'); return false; }
     if (!domains.length) { NT.toast('Add at least one site to block (Focus ▸ blocked sites).'); return false; }
-    try { await applyRules(domains, allowDomains); } catch (e) { NT.toast('Could not start Focus Mode.'); return false; }
+    try { await applyRules(domains, allowDomains); } catch (e) {
+      console.error('Could not apply Focus Mode rules', e);
+      NT.toast('Could not start Focus Mode. Check the site-blocking permission and try again.');
+      return false;
+    }
     focus = { until, source, domains, allowDomains };
     await NT.save({ focus });
+    await blockAlreadyOpenTabs(domains, allowDomains);
     if (chrome.alarms) chrome.alarms.create('focusEnd', { when: until });
     renderBanner();
     return true;
@@ -129,6 +161,19 @@
     const r = await NT.load(['focus']);
     focus = r.focus || null;
     if (focus && focus.until <= Date.now()) await stop();
+    else if (focus) {
+      try {
+        const granted = await chrome.permissions.contains({ permissions: ['declarativeNetRequest'], origins: ['<all_urls>'] });
+        if (granted) {
+          await applyRules(focus.domains || [], focus.allowDomains || []);
+          await blockAlreadyOpenTabs(focus.domains || [], focus.allowDomains || []);
+        }
+        else NT.toast('Focus Mode is active, but site-blocking permission is missing. Restart Focus Mode and allow access.');
+      } catch (e) {
+        console.error('Could not restore Focus Mode rules', e);
+        NT.toast('Focus Mode could not restore website blocking. Restart Focus Mode and allow access.');
+      }
+    }
     renderBanner();
     $('btnFocus').addEventListener('click', openDialog);
     $('focusEnd').addEventListener('click', () => { if (confirm('End Focus Mode early?')) stop(); });

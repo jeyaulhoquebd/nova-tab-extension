@@ -4,11 +4,43 @@
   const LABEL = { focus: 'Focus', short: 'Short break', long: 'Long break' };
   let pomo, stats = {};
   const ui = {};
+  let audioContext = null;
 
   const dur = m => (m === 'focus' ? state.settings.focusMin : m === 'short' ? state.settings.shortMin : state.settings.longMin) * 60000;
   const hasAlarms = () => typeof chrome !== 'undefined' && chrome.alarms;
   const savePomo = () => NT.save({ pomo });
   const remainingMs = () => (pomo.running ? Math.max(0, pomo.endsAt - Date.now()) : pomo.remaining);
+
+  function prepareAudio() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!audioContext) audioContext = new AudioContextClass();
+      audioContext.resume().catch(error => console.warn('Could not enable timer audio', error));
+    } catch (error) {
+      console.warn('Could not enable timer audio', error);
+    }
+  }
+
+  function playAlert() {
+    if (!audioContext || audioContext.state !== 'running') return false;
+    const startAt = audioContext.currentTime + 0.05;
+    for (let second = 0; second < 30; second += 1) {
+      [0, 0.24, 0.48].forEach((delay, index) => {
+        const start = startAt + second + delay;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = index === 1 ? 660 : 880;
+        gain.gain.setValueAtTime(0.12, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.18);
+      });
+    }
+    return true;
+  }
 
   function clearAlarms() {
     if (!hasAlarms()) return;
@@ -23,6 +55,7 @@
 
   function start() {
     if (pomo.running) return;
+    prepareAudio();
     pomo.running = true;
     pomo.endsAt = Date.now() + pomo.remaining;
     savePomo(); setAlarm();
@@ -67,22 +100,12 @@
     }
     advance(); savePomo(); clearAlarms(); stopLinkedFocus();
     if (Date.now() - endedAt < 15000) {
-      beep();
-      NT.toast(was === 'focus' ? 'Focus session complete! Take a break 🎉' : 'Break is over — time to focus ⏰');
+      const sounded = playAlert();
+      NT.toast(sounded
+        ? (was === 'focus' ? 'Focus session complete! Take a break 🎉' : 'Break is over — time to focus ⏰')
+        : 'Timer complete, but audio could not be played.');
     }
     renderTimer(); renderStats();
-  }
-
-  function beep() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [0, 0.25, 0.5].forEach(t => {
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.frequency.value = 880; g.gain.value = 0.15;
-        o.connect(g); g.connect(ctx.destination);
-        o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.15);
-      });
-    } catch (e) { /* audio blocked */ }
   }
 
   function streak() {
@@ -144,12 +167,29 @@
     ui.modeLbl = el('div', { class: 'ring-mode', text: 'Focus' });
     ui.ring.append(el('div', { class: 'ring-center' }, ui.time, ui.modeLbl));
     ui.arc = ui.ring.querySelector('.ring-bar');
+    ui.duration = el('input', {
+      type: 'number', class: 'pomo-duration', min: '1', max: '180', step: '1', value: String(state.settings.focusMin),
+      'aria-label': 'Focus duration in minutes',
+      onchange: () => {
+        const minutes = Number(ui.duration.value);
+        if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+          ui.duration.value = String(state.settings.focusMin);
+          NT.toast('Choose a focus duration from 1 to 180 minutes.');
+          return;
+        }
+        state.settings.focusMin = minutes;
+        NT.saveSettings();
+        NT.emit('settings');
+      }
+    });
     ui.toggle = el('button', { type: 'button', class: 'btn primary', text: 'Start', onclick: () => (pomo.running ? pause() : start()) });
     ui.today = el('span'); ui.streak = el('span', { class: 'muted' });
     ui.bar = el('span'); ui.bars = el('div', { class: 'bars' });
     const c = NT.card('Focus Timer', { icon: '⏱️', actions: [el('button', { type: 'button', class: 'mini-btn', text: 'Log', title: 'Study log', onclick: () => NT.studyLog && NT.studyLog.open() })] });
     c.body.append(
-      el('div', { class: 'pomo-tabs' }, ui.tabs), ui.ring,
+      el('div', { class: 'pomo-tabs' }, ui.tabs),
+      el('label', { class: 'field' }, el('span', { class: 'field-label', text: 'Focus duration (minutes)' }), ui.duration),
+      ui.ring,
       el('div', { class: 'pomo-btns' }, ui.toggle,
         el('button', { type: 'button', class: 'btn ghost', text: 'Reset', onclick: reset }),
         el('button', { type: 'button', class: 'btn ghost', text: 'Skip', onclick: skip })),
@@ -164,6 +204,7 @@
     });
     NT.on('settings', () => {
       if (!pomo.running) pomo.remaining = dur(pomo.mode);
+      ui.duration.value = String(state.settings.focusMin);
       renderTimer(); renderStats();
     });
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {

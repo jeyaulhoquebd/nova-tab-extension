@@ -13,7 +13,7 @@ Updating? Copy these files over your old folder, then press the reload button on
   Type `? your question` in the search box to ask instantly. Key stays on this device only (never synced / exported).
 - 🧠 **Flashcards** with spaced repetition (Again / Hard / Good / Easy) + ✨ AI card generator
 - 📖 **Syllabus tracker** – chapters, progress bars, ✨ AI chapter suggestions
-- 📝 **Pomodoro session notes & tags** + searchable Study log with weekly subject totals
+- 📝 **Pomodoro session notes & tags** + searchable Study log with weekly subject totals; set a custom focus duration and hear a 30-second completion alert
 - 🔗 **Link previews** – hover a saved site to see its note (optional: fetch page title/description)
 - 🤝 **Share with friends** (share codes, no server) and ☁ **Chrome Sync** backup for your other computers
 - 📍 **Live location** – opt in to refresh local weather and prayer times using your current location; coordinates stay on this device

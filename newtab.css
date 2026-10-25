@@ -192,6 +192,7 @@ details.done-list summary { cursor: pointer; margin-bottom: 8px; }
 
 /* ---------- pomodoro ring ---------- */
 .pomo-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; padding: 4px; border-radius: 999px; background: var(--field); width: fit-content; margin-inline: auto; }
+.pomo-duration { display: block; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--field); color: var(--text); font: inherit; }
 .pomo-tab { padding: 6px 14px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: background 0.2s, color 0.2s; }
 .pomo-tab.active { background: var(--grad); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 40%, transparent); }
 .ring { position: relative; width: 210px; height: 210px; margin: 0 auto; }
