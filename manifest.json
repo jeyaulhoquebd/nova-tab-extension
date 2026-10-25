@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nova Tab – Student Dashboard & Search",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "A beautiful new tab for students: Groq AI helper, flashcards, syllabus tracker, Pomodoro with notes, assignments, exams, class routine, CGPA, weather, prayer times, focus mode, custom widgets and more.",
   "permissions": [
     "storage",
@@ -47,5 +47,6 @@
     "pages": [
       "widget-sandbox.html"
     ]
-  }
+  },
+  "homepage_url": "https://jeyaulhoque.pages.dev/"
 }

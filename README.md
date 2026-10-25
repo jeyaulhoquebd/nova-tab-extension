@@ -1,4 +1,8 @@
-# Nova Tab – Student Dashboard & Search (v4)
+# Nova Tab – Student Dashboard & Search (v4.1)
+
+Developed by **Jeyaul Hoque** · Website: https://jeyaulhoque.pages.dev/ · Email: jeyaulhoquejaber@gmail.com
+GitHub: https://github.com/jeyaulhoquebd/nova-tab-extension
+Found a bug? Open Settings ▸ About & support ▸ Report a problem, or email me.
 
 Install / update: chrome://extensions → Developer mode → Load unpacked (select this folder).
 Updating? Copy these files over your old folder, then press the reload button on the extension card — your data stays.
