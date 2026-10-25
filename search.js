@@ -96,6 +96,8 @@
     const text = $('q').value.trim();
     if (!text) { if (!compare) location.href = current().home; return; }
     if (looksLikeUrl(text)) { location.href = /^https?:\/\//i.test(text) ? text : 'https://' + text; return; }
+    const aiQ = /^(?:\?|ai)\s+([\s\S]+)$/i.exec(text);
+    if (aiQ && NT.ai) { NT.suggest && NT.suggest.hide(); $('q').value = ''; NT.ai.open(aiQ[1].trim(), true); return; }
     if (NT.suggest) await NT.suggest.remember(text);
     const bang = parseBang(text);
     if (bang) {
@@ -123,8 +125,8 @@
     if (local.compare) { compare = !!local.compare.on; if (Array.isArray(local.compare.selected)) selected = new Set(local.compare.selected); }
     $('searchForm').addEventListener('submit', onSubmit);
     $('q').addEventListener('input', () => {
-      const b = parseBang($('q').value.trim());
-      setHint(b ? `↳ ${nameOf(b.target)}: "${b.query}"` : null);
+      const v = $('q').value.trim(), b = parseBang(v);
+      setHint(/^(?:\?|ai)\s+\S/i.test(v) ? '↳ Ask Nova AI (Groq) — press Enter' : b ? `↳ ${nameOf(b.target)}: "${b.query}"` : null);
     });
     setEngine(ENGINES.some(e => e.id === sync.engine) ? sync.engine : 'google', false);
     document.addEventListener('keydown', ev => {

@@ -63,6 +63,7 @@
       stats[d] = (stats[d] || 0) + state.settings.focusMin;
       pomo.cycle++;
       NT.save({ stats });
+      NT.emit('focus-complete', { minutes: state.settings.focusMin, endedAt, fresh: Date.now() - endedAt < 15000 });
     }
     advance(); savePomo(); clearAlarms(); stopLinkedFocus();
     if (Date.now() - endedAt < 15000) {
@@ -104,7 +105,9 @@
     ui.time.textContent = `${mm}:${ss}`;
     ui.modeLbl.textContent = LABEL[pomo.mode];
     const total = dur(pomo.mode);
-    ui.arc.style.strokeDashoffset = String(553 * (1 - (total ? Math.min(1, ms / total) : 0)));
+    const frac = total ? Math.min(1, ms / total) : 0;
+    ui.arc.style.strokeDashoffset = String(553 * (1 - frac));
+    ui.ring.setAttribute('aria-valuenow', String(Math.round(frac * 100)));
     ui.toggle.textContent = pomo.running ? 'Pause' : (ms < dur(pomo.mode) ? 'Resume' : 'Start');
     ui.tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === pomo.mode));
     document.title = pomo.running ? `${mm}:${ss} · ${LABEL[pomo.mode]}` : 'New Tab';
@@ -135,7 +138,7 @@
     pomo = r.pomo || { mode: 'focus', running: false, endsAt: null, remaining: dur('focus'), cycle: 0 };
 
     ui.tabs = Object.keys(LABEL).map(m => el('button', { type: 'button', class: 'pomo-tab', 'data-mode': m, text: LABEL[m], onclick: () => setMode(m) }));
-    ui.ring = el('div', { class: 'ring' });
+    ui.ring = el('div', { class: 'ring', role: 'progressbar', 'aria-label': 'Timer', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '100' });
     ui.ring.innerHTML = '<svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--accent)"/><stop offset="1" style="stop-color:var(--accent2)"/></linearGradient></defs><circle class="ring-track" cx="100" cy="100" r="88"/><circle class="ring-bar" cx="100" cy="100" r="88" stroke="url(#rg)"/></svg>';
     ui.time = el('div', { class: 'ring-time', text: '25:00' });
     ui.modeLbl = el('div', { class: 'ring-mode', text: 'Focus' });
@@ -144,7 +147,7 @@
     ui.toggle = el('button', { type: 'button', class: 'btn primary', text: 'Start', onclick: () => (pomo.running ? pause() : start()) });
     ui.today = el('span'); ui.streak = el('span', { class: 'muted' });
     ui.bar = el('span'); ui.bars = el('div', { class: 'bars' });
-    const c = NT.card('Focus Timer', { icon: '⏱️' });
+    const c = NT.card('Focus Timer', { icon: '⏱️', actions: [el('button', { type: 'button', class: 'mini-btn', text: 'Log', title: 'Study log', onclick: () => NT.studyLog && NT.studyLog.open() })] });
     c.body.append(
       el('div', { class: 'pomo-tabs' }, ui.tabs), ui.ring,
       el('div', { class: 'pomo-btns' }, ui.toggle,
@@ -157,7 +160,7 @@
     renderTimer(); renderStats();
 
     NT.on('tick', () => {
-      if (pomo.running && Date.now() >= pomo.endsAt) complete(); else renderTimer();
+      if (pomo.running && Date.now() >= pomo.endsAt) complete(); else if (!document.hidden) renderTimer();
     });
     NT.on('settings', () => {
       if (!pomo.running) pomo.remaining = dur(pomo.mode);

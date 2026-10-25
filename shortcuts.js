@@ -25,7 +25,11 @@
       el('button', { type: 'button', class: 'tool', title: 'Edit', text: '✎', onclick: ev => { ev.preventDefault(); ev.stopPropagation(); form(s.id); } }),
       el('button', { type: 'button', class: 'tool', title: 'Remove', text: '✕', onclick: ev => { ev.preventDefault(); ev.stopPropagation(); sites = sites.filter(x => x.id !== s.id); persist(); render(); } })));
 
-    t.addEventListener('dragstart', ev => { dragId = s.id; ev.dataTransfer.effectAllowed = 'move'; try { ev.dataTransfer.setData('text/plain', s.id); } catch (e) {} t.classList.add('dragging'); });
+    t.addEventListener('mouseenter', () => NT.linkPreview && NT.linkPreview.show(s, t));
+    t.addEventListener('mouseleave', () => NT.linkPreview && NT.linkPreview.hide());
+    t.addEventListener('focusin', () => NT.linkPreview && NT.linkPreview.show(s, t));
+    t.addEventListener('focusout', () => NT.linkPreview && NT.linkPreview.hide());
+    t.addEventListener('dragstart', ev => { if (NT.linkPreview) NT.linkPreview.hide(); dragId = s.id; ev.dataTransfer.effectAllowed = 'move'; try { ev.dataTransfer.setData('text/plain', s.id); } catch (e) {} t.classList.add('dragging'); });
     t.addEventListener('dragend', () => { dragId = null; t.classList.remove('dragging'); });
     t.addEventListener('dragover', ev => { if (dragId && dragId !== s.id) { ev.preventDefault(); t.classList.add('drop-target'); } });
     t.addEventListener('dragleave', () => t.classList.remove('drop-target'));
@@ -68,13 +72,14 @@
       fields: [
         { name: 'name', label: 'Name', value: s ? s.name : '', required: true, maxlength: 24, placeholder: 'e.g. GitHub' },
         { name: 'url', label: 'Link', value: s ? s.url : '', required: true, placeholder: 'e.g. github.com' },
-        { name: 'category', label: 'Category (optional)', value: s ? (s.category || '') : '', placeholder: 'e.g. Study, AI, Dev', list: cats }
+        { name: 'category', label: 'Category (optional)', value: s ? (s.category || '') : '', placeholder: 'e.g. Study, AI, Dev', list: cats },
+        { name: 'note', label: 'Note shown on hover (optional)', value: s ? (s.note || '') : '', maxlength: 140, placeholder: 'e.g. Physics class notes' }
       ],
       onSubmit: v => {
         const url = NT.normalizeUrl(v.url);
         if (!v.name || !url) return 'Please enter a name and a valid link (e.g. github.com).';
         const category = v.category || 'General';
-        if (s) { s.name = v.name; s.url = url; s.category = category; } else sites.push({ id: NT.uid(), name: v.name, url, category });
+        if (s) { s.name = v.name; s.url = url; s.category = category; s.note = v.note; } else sites.push({ id: NT.uid(), name: v.name, url, category, note: v.note });
         persist(); render();
       }
     });

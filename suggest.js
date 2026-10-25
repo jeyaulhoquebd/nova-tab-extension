@@ -33,6 +33,7 @@
   }
 
   function hide() {
+    $('q').setAttribute('aria-expanded', 'false'); $('q').removeAttribute('aria-activedescendant');
     panel().hidden = true; items = []; active = -1; mode = 'none';
     if (ctl) { ctl.abort(); ctl = null; }
   }
@@ -51,7 +52,7 @@
       const text = mode === 'suggest' && lower.startsWith(q) && q
         ? [el('span', { text: t.slice(0, typed.length) }), el('b', { text: t.slice(typed.length) })]
         : [el('span', { text: t })];
-      p.append(el('div', { class: 'suggest-item' + (i === active ? ' active' : ''), onmousedown: ev => ev.preventDefault(), onclick: () => pick(i) },
+      p.append(el('div', { id: 'sg' + i, role: 'option', 'aria-selected': i === active ? 'true' : 'false', class: 'suggest-item' + (i === active ? ' active' : ''), onmousedown: ev => ev.preventDefault(), onclick: () => pick(i) },
         el('span', { class: 'suggest-icon', text: mode === 'recent' ? '🕘' : '🔍' }),
         el('span', { class: 'suggest-text' }, text),
         mode === 'recent' ? el('button', { type: 'button', class: 'tool', title: 'Remove', text: '✕', onmousedown: ev => ev.preventDefault(), onclick: ev => {
@@ -59,6 +60,7 @@
         } }) : null));
     });
     p.hidden = false;
+    $('q').setAttribute('aria-expanded', 'true');
   }
 
   function pick(i) {
@@ -100,7 +102,8 @@
       ev.preventDefault();
       active = ev.key === 'ArrowDown' ? Math.min(items.length - 1, active + 1) : Math.max(-1, active - 1);
       $('q').value = active >= 0 ? (mode === 'suggest' ? prefix : '') + items[active] : (mode === 'suggest' ? prefix + typed : '');
-      panel().querySelectorAll('.suggest-item').forEach((n, i) => n.classList.toggle('active', i === active));
+      panel().querySelectorAll('.suggest-item').forEach((n, i) => { n.classList.toggle('active', i === active); n.setAttribute('aria-selected', i === active ? 'true' : 'false'); });
+      if (active >= 0) $('q').setAttribute('aria-activedescendant', 'sg' + active); else $('q').removeAttribute('aria-activedescendant');
     } else if (ev.key === 'Escape' && open) {
       $('q').value = mode === 'suggest' ? prefix + typed : $('q').value;
       hide();

@@ -28,6 +28,7 @@
     else if (s.wallpaper === 'custom') url = (await NT.load(['bgImage'])).bgImage || '';
     $('bgImg').style.backgroundImage = url ? `url("${url}")` : '';
     document.documentElement.classList.toggle('has-image', !!url);
+    document.documentElement.classList.toggle('lite', !!s.lite);
   }
 
   function set(key, value) {
@@ -35,7 +36,7 @@
     NT.saveSettings();
     if (key === 'timezone') NT.applyTimezone();
     NT.emit('settings');
-    if (key === 'mode' || key === 'wallpaper') applyLook();
+    if (key === 'mode' || key === 'wallpaper' || key === 'lite') applyLook();
   }
 
   function readImage(file) {
@@ -55,8 +56,8 @@
 
   async function exportData() {
     const [sync, local] = await Promise.all([NT.store.get('sync', null), NT.store.get('local', null)]);
-    ['bgImage', 'weatherCache', 'prayerCache', 'focus', 'loc'].forEach(k => delete local[k]);
-    const blob = new Blob([JSON.stringify({ app: 'nova-tab', version: 3, exported: new Date().toISOString(), sync, local }, null, 2)], { type: 'application/json' });
+    ['bgImage', 'weatherCache', 'prayerCache', 'focus', 'loc', 'ai', 'aiChat', 'linkMeta'].forEach(k => delete local[k]);
+    const blob = new Blob([JSON.stringify({ app: 'nova-tab', version: 4, exported: new Date().toISOString(), sync, local }, null, 2)], { type: 'application/json' });
     const a = el('a', { href: URL.createObjectURL(blob), download: `nova-tab-backup-${NT.todayStr()}.json` });
     document.body.appendChild(a); a.click(); a.remove();
   }
@@ -99,15 +100,33 @@
       [['none', 'Colour theme only'], ['daily', 'Daily photo (online)'], ['custom', 'My own photo…']].map(([v, l]) => el('option', { value: v, selected: v === s.wallpaper }, l)));
     const mode = el('select', { onchange: ev => set('mode', ev.target.value) }, [['dark', 'Dark'], ['light', 'Light']].map(([v, l]) => el('option', { value: v, selected: v === s.mode }, l)));
 
+    const fetchChk = el('input', { type: 'checkbox', checked: s.linkFetch === true, onchange: async ev => {
+      if (ev.target.checked) {
+        let ok = false;
+        try { ok = await chrome.permissions.request({ origins: ['<all_urls>'] }); } catch (e) { ok = false; }
+        if (!ok) { ev.target.checked = false; NT.toast('Permission was not granted.'); return; }
+        if (NT.linkPreview) NT.linkPreview.resetPermission();
+      }
+      set('linkFetch', ev.target.checked);
+    } });
+
     const root = el('div', {},
-      sec('Display', row('Your name', name, 'Shown in the greeting'), row('12-hour clock (AM/PM)', check('hour12')), row('Show seconds', check('showSeconds')), row('Appearance', mode), row('Background', wall), file),
+      sec('Display', row('Your name', name, 'Shown in the greeting'), row('12-hour clock (AM/PM)', check('hour12')), row('Show seconds', check('showSeconds')), row('Lite mode', check('lite'), 'Fewer effects — faster on older computers'), row('Appearance', mode), row('Background', wall), file),
       sec('Time & location', row('Time zone', zone, 'Auto uses your device location'), row('City for weather & prayer', city, 'Leave empty to use your time zone')),
       sec('Search', row('Search suggestions', check('suggest'), 'Sends what you type to Google to get suggestions'), row('Recent searches', check('recent'), 'Stored only on this device'),
         el('div', { class: 'btn-row' }, el('button', { type: 'button', class: 'btn ghost', text: 'Clear recent searches', onclick: async () => { await NT.suggest.clear(); NT.toast('Recent searches cleared'); } }))),
+      sec('AI & tools',
+        row('Groq AI', el('button', { type: 'button', class: 'btn ghost', text: 'Set up…', onclick: () => { document.getElementById('bigDialog').close(); NT.ai.open(); } }), 'API key and model'),
+        row('Link previews', check('linkPreview'), 'Hover a saved site to see its note'),
+        row('Fetch page titles', fetchChk, 'Needs permission to read pages you saved'),
+        row('Widgets', el('button', { type: 'button', class: 'btn ghost', text: 'Manage…', onclick: () => { document.getElementById('bigDialog').close(); NT.widgets.open(); } }), 'Build your own mini apps')),
       sec('Study', row('Daily study goal (min)', num('dailyGoal', 10, 1000)), row('Focus session (min)', num('focusMin', 1, 180)), row('Short break (min)', num('shortMin', 1, 60)),
         row('Long break (min)', num('longMin', 1, 120)), row('Long break every (sessions)', num('longEvery', 2, 10)),
         row('Block sites during focus sessions', check('blockDuringPomodoro'), 'Uses the Focus Mode block list')),
-      sec('Your data', el('div', { class: 'btn-row' },
+      sec('Your data', el('div', { class: 'btn-row', style: 'margin-bottom:10px' },
+        el('button', { type: 'button', class: 'btn ghost', text: '🤝 Share with friends', onclick: () => { document.getElementById('bigDialog').close(); NT.share.openShare(); } }),
+        el('button', { type: 'button', class: 'btn ghost', text: '☁ Chrome Sync', onclick: () => { document.getElementById('bigDialog').close(); NT.share.openSync(); } })),
+        el('div', { class: 'btn-row' },
         el('button', { type: 'button', class: 'btn ghost', text: '⬇ Export backup', onclick: exportData }),
         el('button', { type: 'button', class: 'btn ghost', text: '⬆ Import backup', onclick: () => importFile.click() }),
         el('button', { type: 'button', class: 'btn danger', text: 'Reset all', onclick: async () => {
@@ -119,7 +138,7 @@
 
   NT.register(async () => {
     const box = $('swatches');
-    THEMES.forEach(t => box.append(el('button', { type: 'button', class: 'swatch', 'data-id': t.id, title: t.name, style: `background:linear-gradient(135deg, ${t.accent}, ${t.accent2})`, onclick: () => applyTheme(t.id) })));
+    THEMES.forEach(t => box.append(el('button', { type: 'button', class: 'swatch', 'data-id': t.id, title: t.name, 'aria-label': t.name + ' theme', style: `background:linear-gradient(135deg, ${t.accent}, ${t.accent2})`, onclick: () => applyTheme(t.id) })));
     const r = await NT.loadSync(['theme']);
     applyTheme(r.theme || 'aurora', false);
     await applyLook();

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="newtab.css">
 </head>
 <body>
+  <a class="skip" href="#q">Skip to search</a>
   <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
   <div class="grain" aria-hidden="true"></div>
   <div id="bgImg" class="bg-img" aria-hidden="true"></div>
@@ -16,14 +17,15 @@
     <button id="focusEnd" type="button">End</button>
   </div>
 
-  <div class="toolbar">
-    <button id="btnFocus" class="tool-btn" type="button" title="Focus Mode">🎯 <span>Focus</span></button>
-    <button id="btnSessions" class="tool-btn" type="button" title="Tab sessions">🗂️ <span>Sessions</span></button>
-    <button id="btnCgpa" class="tool-btn" type="button" title="CGPA calculator">🎓 <span>CGPA</span></button>
-    <button id="btnSettings" class="tool-btn" type="button" title="Settings">⚙️ <span>Settings</span></button>
+  <div class="toolbar" role="toolbar" aria-label="Tools">
+    <button id="btnAI" class="tool-btn" type="button" title="Nova AI (Groq)" aria-label="Nova AI">🤖 <span>AI</span></button>
+    <button id="btnFocus" class="tool-btn" type="button" aria-label="Focus Mode" title="Focus Mode">🎯 <span>Focus</span></button>
+    <button id="btnSessions" class="tool-btn" type="button" aria-label="Tab sessions" title="Tab sessions">🗂️ <span>Sessions</span></button>
+    <button id="btnCgpa" class="tool-btn" type="button" aria-label="CGPA calculator" title="CGPA calculator">🎓 <span>CGPA</span></button>
+    <button id="btnSettings" class="tool-btn" type="button" aria-label="Settings" title="Settings">⚙️ <span>Settings</span></button>
   </div>
 
-  <main>
+  <main id="main">
     <section class="clock">
       <div class="time-row">
         <span id="time" class="time">--:--</span>
@@ -40,14 +42,14 @@
     <div class="search-wrap">
       <form id="searchForm" class="search" autocomplete="off">
         <img id="engineIcon" class="engine-icon" alt="">
-        <input id="q" type="text" placeholder="Search the web…" spellcheck="false" autocomplete="off" autofocus>
-        <button type="button" id="promptBtn" class="icon-btn" title="Prompt library" aria-label="Prompt library">✨</button>
+        <input id="q" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestPanel" aria-label="Search" placeholder="Search the web…" spellcheck="false" autocomplete="off" autofocus>
+        <button type="button" id="promptBtn" class="icon-btn" title="Prompt library" aria-label="Prompt library" aria-haspopup="true">✨</button>
         <button type="submit" class="go" aria-label="Search">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </button>
       </form>
       <div id="promptPanel" class="panel" hidden></div>
-      <div id="suggestPanel" class="panel suggest" hidden></div>
+      <div id="suggestPanel" class="panel suggest" role="listbox" aria-label="Search suggestions" hidden></div>
     </div>
 
     <nav id="engines" class="engines" aria-label="Search engines"></nav>
@@ -63,10 +65,10 @@
     <div id="swatches" class="swatches"></div>
   </footer>
 
-  <div id="toast" class="toast" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <dialog id="formDialog"><form id="formDialogForm" class="dialog-inner" autocomplete="off"></form></dialog>
-  <dialog id="bigDialog" class="big">
+  <dialog id="formDialog" aria-modal="true"><form id="formDialogForm" class="dialog-inner" autocomplete="off"></form></dialog>
+  <dialog id="bigDialog" class="big" aria-labelledby="bigTitle" aria-modal="true">
     <div class="dialog-inner">
       <div class="big-head"><h2 id="bigTitle"></h2><button id="bigClose" type="button" class="tool" aria-label="Close">✕</button></div>
       <div id="bigBody"></div>
@@ -79,14 +81,21 @@
   <script src="prompts.js"></script>
   <script src="suggest.js"></script>
   <script src="shortcuts.js"></script>
+  <script src="linkpreview.js"></script>
   <script src="pomodoro.js"></script>
+  <script src="studylog.js"></script>
   <script src="planner.js"></script>
+  <script src="flashcards.js"></script>
+  <script src="syllabus.js"></script>
   <script src="world.js"></script>
   <script src="worldclock.js"></script>
   <script src="notes.js"></script>
+  <script src="widgets.js"></script>
+  <script src="ai.js"></script>
   <script src="cgpa.js"></script>
   <script src="focus.js"></script>
   <script src="sessions.js"></script>
+  <script src="share.js"></script>
   <script src="settings.js"></script>
   <script src="main.js"></script>
 </body>

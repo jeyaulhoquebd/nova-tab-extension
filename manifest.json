@@ -1,16 +1,51 @@
 {
   "manifest_version": 3,
   "name": "Nova Tab – Student Dashboard & Search",
-  "version": "3.0.0",
-  "description": "A beautiful new tab for students: multi-engine & AI search, your local time, search suggestions, Pomodoro, assignments, exams, class routine, CGPA, prayer times, weather, focus mode and more.",
-  "permissions": ["storage", "alarms", "notifications"],
-  "host_permissions": ["https://suggestqueries.google.com/*", "https://duckduckgo.com/ac/*"],
-  "optional_permissions": ["tabs", "declarativeNetRequest"],
-  "optional_host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "background.js" },
-  "chrome_url_overrides": { "newtab": "newtab.html" },
-  "web_accessible_resources": [
-    { "resources": ["blocked.html", "blocked.css", "blocked.js"], "matches": ["<all_urls>"] }
+  "version": "4.0.0",
+  "description": "A beautiful new tab for students: Groq AI helper, flashcards, syllabus tracker, Pomodoro with notes, assignments, exams, class routine, CGPA, weather, prayer times, focus mode, custom widgets and more.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
   ],
-  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  "host_permissions": [
+    "https://suggestqueries.google.com/*",
+    "https://duckduckgo.com/ac/*",
+    "https://api.groq.com/*"
+  ],
+  "optional_permissions": [
+    "tabs",
+    "declarativeNetRequest"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "blocked.html",
+        "blocked.css",
+        "blocked.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "sandbox": {
+    "pages": [
+      "widget-sandbox.html"
+    ]
+  }
 }

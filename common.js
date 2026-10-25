@@ -38,7 +38,7 @@
   const DEFAULTS = {
     hour12: true, showSeconds: true, name: '', mode: 'dark', wallpaper: 'none',
     dailyGoal: 120, focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4,
-    blockDuringPomodoro: false, city: '', timezone: 'auto', suggest: true, recent: true,
+    blockDuringPomodoro: false, city: '', timezone: 'auto', suggest: true, recent: true, linkPreview: true, linkFetch: false, lite: false,
     blockList: ['facebook.com', 'youtube.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'reddit.com', 'netflix.com']
   };
   const state = { settings: { ...DEFAULTS } };
@@ -201,10 +201,10 @@
       }
       inputs[f.name] = input;
     });
-    const err = el('p', { class: 'form-error', hidden: true });
+    const err = el('p', { class: 'form-error', hidden: true, role: 'alert' });
+    const submitBtn = el('button', { type: 'submit', class: 'btn primary', text: submitText });
     form.append(err, el('div', { class: 'actions' },
-      el('button', { type: 'button', class: 'btn ghost', text: 'Cancel', onclick: () => dlg.close() }),
-      el('button', { type: 'submit', class: 'btn primary', text: submitText })));
+      el('button', { type: 'button', class: 'btn ghost', text: 'Cancel', onclick: () => dlg.close() }), submitBtn));
     form.onsubmit = async ev => {
       ev.preventDefault();
       const v = {};
@@ -212,7 +212,10 @@
         const i = inputs[f.name];
         v[f.name] = f.type === 'days' ? [...i.querySelectorAll('input:checked')].map(x => parseInt(x.value, 10)) : (i.value || '').trim();
       });
-      const msg = await onSubmit(v);
+      submitBtn.disabled = true; submitBtn.textContent = 'Working…';
+      let msg;
+      try { msg = await onSubmit(v); } catch (e) { msg = e && e.message ? e.message : 'Something went wrong.'; }
+      finally { submitBtn.disabled = false; submitBtn.textContent = submitText; }
       if (msg) { err.textContent = msg; err.hidden = false; } else dlg.close();
     };
     dlg.showModal();

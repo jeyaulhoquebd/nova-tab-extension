@@ -1,15 +1,19 @@
-# Nova Tab – Student Dashboard & Search (v3)
+# Nova Tab – Student Dashboard & Search (v4)
 
 Install / update: chrome://extensions → Developer mode → Load unpacked (select this folder).
 Updating? Copy these files over your old folder, then press the reload button on the extension card — your data stays.
 
-New in v3
-- Time follows YOUR location: the clock auto-detects your country/time zone (change it in Settings ▸ Time & location)
-- Google-style search suggestions (↑ ↓ to pick, Enter to search) + recent searches
-- World Clock card: add cities and compare their time with yours
-- Weather & prayer times follow your city (worldwide)
-- Redesigned UI: gradient clock, progress-ring timer, glass cards, 8 colour themes
+## New in v4
+- 🤖 **Nova AI (Groq)** – bring your own key from https://console.groq.com/keys, pick any chat model, stream answers.
+  Type `? your question` in the search box to ask instantly. Key stays on this device only (never synced / exported).
+- 🧠 **Flashcards** with spaced repetition (Again / Hard / Good / Easy) + ✨ AI card generator
+- 📖 **Syllabus tracker** – chapters, progress bars, ✨ AI chapter suggestions
+- 📝 **Pomodoro session notes & tags** + searchable Study log with weekly subject totals
+- 🔗 **Link previews** – hover a saved site to see its note (optional: fetch page title/description)
+- 🤝 **Share with friends** (share codes, no server) and ☁ **Chrome Sync** backup for your other computers
+- 🧩 **Widgets** – build your own sandboxed mini apps (HTML/CSS/JS) with a small `Nova` API
+- ♿ **Accessibility & speed** – keyboard focus rings, skip link, screen-reader labels, Lite mode, paused animations in hidden tabs
 
-Also: multi-engine & AI search · ⚡ Compare mode · quick commands (yt, gh, so, wiki, maps, tr, npm, mdn…) · Prompt library
-· saved sites with categories + drag & drop · Pomodoro + goal + streak · Assignments · Exam countdown · Class routine
-· CGPA calculator · Quick notes · Focus Mode (site blocker) · Tab sessions · Light/dark · wallpapers · Backup & restore
+## Earlier versions
+Time follows your location · Google-style suggestions · World clock · weather & prayer times · Pomodoro ring · assignments ·
+exam countdown · class routine · CGPA · notes · Focus Mode · tab sessions · 8 themes · light/dark · wallpapers · backup & restore
