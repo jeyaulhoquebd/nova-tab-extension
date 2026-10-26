@@ -11,7 +11,8 @@
   "host_permissions": [
     "https://suggestqueries.google.com/*",
     "https://duckduckgo.com/ac/*",
-    "https://api.groq.com/*"
+    "https://api.groq.com/*",
+    "https://api.telegram.org/*"
   ],
   "optional_permissions": [
     "tabs",

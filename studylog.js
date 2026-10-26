@@ -63,5 +63,9 @@
       log.push(e); save();
       if (fresh) detailsForm(e, true);
     });
+    NT.on('focus-logged', entry => {
+      log.push(entry);
+      save();
+    });
   });
 })();

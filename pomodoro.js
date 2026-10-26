@@ -121,6 +121,36 @@
     return n;
   }
 
+  function logFocusTime() {
+    NT.formDialog({
+      title: 'Log focus time',
+      submitText: 'Add time',
+      fields: [
+        { name: 'hours', label: 'Hours worked', type: 'number', min: '0.01', max: '24', step: '0.01', required: true, value: '1' },
+        { name: 'subject', label: 'Subject (optional)', maxlength: 40, placeholder: 'e.g. Physics' },
+        { name: 'note', label: 'What did you work on? (optional)', type: 'textarea', rows: 2 }
+      ],
+      onSubmit: async value => {
+        const hours = Number(value.hours);
+        if (!Number.isFinite(hours) || hours <= 0 || hours > 24) return 'Enter a time greater than 0 and no more than 24 hours.';
+        const minutes = Math.round(hours * 60);
+        const date = NT.todayStr();
+        const latest = (await NT.load(['stats'])).stats || stats;
+        const total = (Number(latest[date]) || 0) + minutes;
+        latest[date] = total;
+        stats = latest;
+        await NT.save({ stats });
+        const endedAt = Date.now();
+        NT.emit('focus-logged', {
+          id: NT.uid(), ts: endedAt, date, minutes,
+          subject: value.subject || '', note: value.note || '', tags: []
+        });
+        renderStats();
+        NT.toast(`Logged ${(minutes / 60).toFixed(2)}h · today’s total ${(total / 60).toFixed(2)}h.`);
+      }
+    });
+  }
+
   function renderTimer() {
     const ms = remainingMs();
     const s = Math.ceil(ms / 1000);
@@ -140,7 +170,7 @@
     const goal = Math.max(1, state.settings.dailyGoal);
     const today = NT.todayStr();
     const mins = stats[today] || 0;
-    ui.today.textContent = `Today: ${mins} / ${goal} min`;
+    ui.today.textContent = `Today: ${mins} min (${(mins / 60).toFixed(2)}h) / ${goal} min`;
     ui.bar.style.width = Math.min(100, (mins / goal) * 100) + '%';
     const n = streak();
     ui.streak.textContent = n > 0 ? `🔥 ${n}-day streak` : 'No streak yet — hit your goal today!';
@@ -185,7 +215,10 @@
     ui.toggle = el('button', { type: 'button', class: 'btn primary', text: 'Start', onclick: () => (pomo.running ? pause() : start()) });
     ui.today = el('span'); ui.streak = el('span', { class: 'muted' });
     ui.bar = el('span'); ui.bars = el('div', { class: 'bars' });
-    const c = NT.card('Focus Timer', { icon: '⏱️', actions: [el('button', { type: 'button', class: 'mini-btn', text: 'Log', title: 'Study log', onclick: () => NT.studyLog && NT.studyLog.open() })] });
+    const c = NT.card('Focus Timer', { icon: '⏱️', actions: [
+      el('button', { type: 'button', class: 'mini-btn', text: '＋ Log time', title: 'Add manually logged focus hours', onclick: logFocusTime }),
+      el('button', { type: 'button', class: 'mini-btn', text: 'Log', title: 'Study log', onclick: () => NT.studyLog && NT.studyLog.open() })
+    ] });
     c.body.append(
       el('div', { class: 'pomo-tabs' }, ui.tabs),
       el('label', { class: 'field' }, el('span', { class: 'field-label', text: 'Focus duration (minutes)' }), ui.duration),

@@ -14,6 +14,8 @@ Updating? Copy these files over your old folder, then press the reload button on
 - 🧠 **Flashcards** with spaced repetition (Again / Hard / Good / Easy) + ✨ AI card generator
 - 📖 **Syllabus tracker** – chapters, progress bars, ✨ AI chapter suggestions
 - 📝 **Pomodoro session notes & tags** + searchable Study log with weekly subject totals; set a custom focus duration and hear a 30-second completion alert
+- ✈️ **Telegram study summaries** – push a summary of your focus time, today’s classes, assignments, flashcards, syllabus, notes, and exams; optionally schedule selected categories every 24 hours
+- ⏱️ **Manual focus-time logging** – add hours to the day’s running study total and Study log
 - 🔗 **Link previews** – hover a saved site to see its note (optional: fetch page title/description)
 - 🤝 **Share with friends** (share codes, no server) and ☁ **Chrome Sync** backup for your other computers
 - 📍 **Live location** – opt in to refresh local weather and prayer times using your current location; coordinates stay on this device
@@ -25,3 +27,8 @@ Updating? Copy these files over your old folder, then press the reload button on
 ## Earlier versions
 Time follows your location · Google-style suggestions · World clock · weather & prayer times · Pomodoro ring · assignments ·
 exam countdown · class routine · CGPA · notes · Focus Mode · tab sessions · 8 themes · light/dark · wallpapers · backup & restore
+
+## Telegram summaries
+Open the Telegram button or Settings → AI & tools → Telegram study summaries. Create a bot with [@BotFather](https://t.me/BotFather), save its token, send `/start` to the bot, then select **Find chat ID**. Use **Push today’s summary** to send all categories immediately. Check the categories you want included in automatic reports, then enable the 24-hour schedule; it repeats every 24 hours until disabled. The bot must be able to message your chat.
+
+Telegram credentials are stored in local extension storage only; they are not included in exported backups or Chrome Sync. Automatic reports include Quick Notes only when that category is selected. Telegram delivery requires an internet connection and the browser to be running.

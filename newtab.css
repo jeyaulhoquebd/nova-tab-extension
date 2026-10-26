@@ -68,6 +68,11 @@ main { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-di
 .toolbar { position: fixed; top: 16px; right: 18px; z-index: 5; display: flex; gap: 2px; padding: 5px; border-radius: 999px; background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow); }
 .tool-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 0; background: transparent; color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
 .tool-btn:hover { background: var(--glass-strong); }
+.telegram-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 16px; }
+.telegram-category, .telegram-auto { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--field); cursor: pointer; }
+.telegram-category input, .telegram-auto input { accent-color: var(--accent); }
+.telegram-heading { margin: 18px 0 8px; font-size: 15px; }
+.telegram-auto { width: fit-content; margin: 14px 0; }
 .focus-banner { position: fixed; top: 16px; left: 18px; z-index: 6; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: 999px; background: var(--grad); color: #fff; font-size: 13px; box-shadow: 0 12px 34px rgba(0,0,0,0.35); }
 .focus-banner button { border: 0; border-radius: 999px; padding: 5px 12px; background: rgba(0,0,0,0.3); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; padding: 12px 22px; border-radius: 999px; background: rgba(15, 23, 42, 0.94); color: #fff; font-size: 14px; box-shadow: 0 14px 40px rgba(0,0,0,0.4); max-width: 90vw; animation: pop 0.25s ease; }

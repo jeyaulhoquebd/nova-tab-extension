@@ -66,7 +66,7 @@
 
   async function exportData() {
     const [sync, local] = await Promise.all([NT.store.get('sync', null), NT.store.get('local', null)]);
-    ['bgImage', 'weatherCache', 'prayerCache', 'focus', 'loc', 'ai', 'aiChat', 'linkMeta'].forEach(k => delete local[k]);
+    ['bgImage', 'weatherCache', 'prayerCache', 'focus', 'loc', 'ai', 'aiChat', 'linkMeta', 'telegramConfig'].forEach(k => delete local[k]);
     const blob = new Blob([JSON.stringify({ app: 'nova-tab', version: 4, exported: new Date().toISOString(), sync, local }, null, 2)], { type: 'application/json' });
     const a = el('a', { href: URL.createObjectURL(blob), download: `nova-tab-backup-${NT.todayStr()}.json` });
     document.body.appendChild(a); a.click(); a.remove();
@@ -165,6 +165,7 @@
         el('div', { class: 'btn-row' }, el('button', { type: 'button', class: 'btn ghost', text: 'Clear recent searches', onclick: async () => { await NT.suggest.clear(); NT.toast('Recent searches cleared'); } }))),
       sec('AI & tools',
         row('Groq AI', el('button', { type: 'button', class: 'btn ghost', text: 'Set up…', onclick: () => { document.getElementById('bigDialog').close(); NT.ai.open(); } }), 'API key and model'),
+        row('Telegram study summaries', el('button', { type: 'button', class: 'btn ghost', text: 'Configure…', onclick: () => { document.getElementById('bigDialog').close(); NT.telegram.open(); } }), 'Push a summary now or schedule it every 24 hours'),
         row('Link previews', check('linkPreview'), 'Hover a saved site to see its note'),
         row('Fetch page titles', fetchChk, 'Needs permission to read pages you saved'),
         row('Widgets', el('button', { type: 'button', class: 'btn ghost', text: 'Manage…', onclick: () => { document.getElementById('bigDialog').close(); NT.widgets.open(); } }), 'Build your own mini apps')),
