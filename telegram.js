@@ -126,6 +126,11 @@
     });
     const sendButton = el('button', {
       type: 'button', class: 'btn primary', text: '✈️ Push today’s summary', onclick: async () => {
+        if (!getCategories().length) {
+          status.textContent = 'Select at least one category to include in the summary.';
+          NT.toast('Select at least one category first.');
+          return;
+        }
         sendButton.disabled = true;
         sendButton.textContent = 'Sending…';
         try {
@@ -148,8 +153,8 @@
       el('label', { class: 'field' }, el('span', { class: 'field-label', text: 'Bot token' }), token),
       el('div', { class: 'btn-row' }, el('label', { class: 'field', style: 'flex:1' }, el('span', { class: 'field-label', text: 'Chat ID or channel username' }), chatId), findChatButton),
       el('p', { class: 'muted small' }, el('a', { href: 'https://t.me/BotFather', target: '_blank', rel: 'noopener noreferrer', text: 'Open BotFather' }), ' · To find a private chat ID, save your token, send /start to your bot, then select Find chat ID. Tokens stay on this device and are not included in Nova Tab backups.'),
-      el('h3', { class: 'telegram-heading', text: 'Categories to send automatically' }),
-      el('p', { class: 'muted small', text: 'The push button sends all seven categories. Daily automation sends only checked categories; Quick Notes includes your saved note text.' }),
+      el('h3', { class: 'telegram-heading', text: 'Categories to include in summaries' }),
+      el('p', { class: 'muted small', text: 'Only checked categories are included in manual and automatic summaries. Unchecked categories are excluded. Quick Notes sends your saved note text when selected.' }),
       categoryList,
       el('label', { class: 'telegram-auto' }, automation, el('span', { text: 'Automatically send every 24 hours' })),
       status,

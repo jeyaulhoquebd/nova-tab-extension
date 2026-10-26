@@ -225,7 +225,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ ok: false, error: 'Telegram requests must come from Nova Tab.' });
     return;
   }
-  sendTelegramSummary(TELEGRAM_CATEGORIES).then(
+  getLocalData(['telegramConfig']).then(({ telegramConfig = {} }) => {
+    const categories = TELEGRAM_CATEGORIES.filter(category => (telegramConfig.categories || []).includes(category));
+    return sendTelegramSummary(categories);
+  }).then(
     () => sendResponse({ ok: true }),
     error => sendResponse({ ok: false, error: error.message || 'Telegram could not send the summary.' })
   );
